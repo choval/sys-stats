@@ -1,0 +1,24 @@
+{
+    "name": "choval/sys-stats",
+    "description": "Gets system stats",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+      "files": [
+      ],
+      "psr-4": {
+        "Choval\\System\\": "src/"
+      }
+    },
+    "require": {
+      "php": "^7.2",
+      "react/child-process": "^0.6",
+      "choval/async": "^0.1.0",
+      "psr/log": "^1.1"
+    },
+    "require-dev": {
+      "clue/block-react": "^1.",
+      "phpunit/phpunit": "^7"
+    }
+
+}
