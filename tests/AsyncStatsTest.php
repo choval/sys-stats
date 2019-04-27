@@ -4,22 +4,56 @@ use PHPUnit\Framework\TestCase;
 use React\EventLoop\Factory;
 use React\Promise\Deferred;
 
+use function Choval\Async\sync;
+use function Choval\Async\sleep;
+
 use Choval\System\Stats;
 
-class StatsTest extends TestCase {
+class AsyncStatsTest extends TestCase {
   
+  static $loop;
   static $stats;
 
   public static function setUpBeforeClass() {
-    static::$stats = new Stats;
+    static::$loop = Factory::create();
+    static::$loop->run();
+
+    static::$stats = new Stats( static::$loop, 1 );
+  }
+
+
+
+  public function testOutput() {
+    $stats = static::$stats;
+    $loop = static::$loop;
+
+    $output = sync( $loop, $stats->output() );
+    $this->assertArrayHasKey( 'updated', $output );
+
+    $updated = $output['updated'];
+
+    sync( $loop, sleep( $loop, 2));
+    $output = sync( $loop, $stats->output() );
+    $this->assertArrayHasKey( 'updated', $output );
+
+    $this->assertNotEquals($updated, $output['updated']);
+    $updated = $output['updated'];
+    
+    $stats->stop();
+    $output1 = sync( $loop, $stats->output() );
+    sync( $loop, sleep( $loop, 2));
+    $output2 = sync( $loop, $stats->output() );
+    $this->assertEquals($output1['updated'], $output2['updated']);
+
   }
 
 
 
   public function testDiskStats() {
     $stats = static::$stats;
+    $loop = static::$loop;
 
-    $disk = $stats->getDiskStats();
+    $disk = sync( $loop, $stats->getDiskStats() );
     $this->assertNotEmpty($disk);
     $cols = ['filesystem', 'size', 'used', 'available', 'capacity', 'mounted_on'];
     foreach($disk as $row) {
@@ -30,12 +64,12 @@ class StatsTest extends TestCase {
         }
         if($col == 'capacity') {
           $this->assertGreaterThanOrEqual(0, $row[$col]);
-          $this->assertLessThanOrEqual(100, $row[$col]);
+          $this->assertLessThanOrEqual(120, $row[$col]);
         }
       }
     }
 
-    $stats = $stats->getSingleDiskStats(getcwd());
+    $stats = sync($loop, $stats->getSingleDiskStats(getcwd()) );
     $this->assertNotEmpty($stats);
     foreach($cols as $col) {
       $this->assertArrayHasKey($col, $stats);
@@ -44,8 +78,9 @@ class StatsTest extends TestCase {
       }
       if($col == 'capacity') {
         $this->assertGreaterThanOrEqual(0, $stats[$col]);
-        $this->assertLessThanOrEqual(100, $stats[$col]);
+        $this->assertLessThanOrEqual(120, $stats[$col]);
       }
+      $this->assertContains($stats, $disk);
     }
 
   }
@@ -54,8 +89,9 @@ class StatsTest extends TestCase {
 
   public function testCpuModels() {
     $stats = static::$stats;
+    $loop = static::$loop;
 
-    $models = $stats->getCpuModels();
+    $models = sync( $loop, $stats->getCpuModels() );
     $this->assertNotEmpty($models);
   }
 
@@ -66,14 +102,15 @@ class StatsTest extends TestCase {
    */
   public function testCpuLoads() {
     $stats = static::$stats;
+    $loop = static::$loop;
 
-    $loads = $stats->getCpuLoads();
+    $loads = sync( $loop, $stats->getCpuLoads() );
     $this->assertArrayHasKey('1_min', $loads);
     $this->assertArrayHasKey('5_min', $loads);
     $this->assertArrayHasKey('15_min', $loads);
     foreach($loads as $load) {
       $this->assertGreaterThanOrEqual(0, $load);
-      $this->assertLessThanOrEqual(100, $load);
+      $this->assertLessThanOrEqual(120, $load);
     }
     print_r($loads);
   }
@@ -81,30 +118,20 @@ class StatsTest extends TestCase {
 
   public function testMemStats() {
     $stats = static::$stats;
+    $loop = static::$loop;
 
-    $stats = $stats->getMemStats();
+    $stats = sync( $loop, $stats->getMemStats() );
     $cols = ['total', 'free', 'used', 'available', 'capacity'];
     foreach($cols as $col) {
       $this->assertArrayHasKey($col, $stats);
     }
     $this->assertGreaterThanOrEqual(0, $stats['capacity']);
-    $this->assertLessThanOrEqual(100, $stats['capacity']);
+    $this->assertLessThanOrEqual(120, $stats['capacity']);
     print_r($stats);
   }
 
 
-  public function testMemUsage() {
-    $stats = static::$stats;
-
-    $usage = $stats->getMemUsage();
-    $cols = ['peak', 'peak_active', 'current', 'current_active'];
-    foreach($cols as $col) {
-      $this->assertArrayHasKey($col, $usage);
-    }
-    print_r($usage);
-  }
-
-
-
 }
+
+
 
