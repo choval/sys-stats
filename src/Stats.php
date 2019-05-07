@@ -430,6 +430,7 @@ final class Stats {
     $cpus = explode("\n", $output);
     foreach($cpus as $cpu) {
       $cpu = trim($cpu);
+      $cpu = str_replace('machdep.cpu.brand_string: ', $cpu);
       if(!empty($cpu)) {
         $names[] = $cpu;
       }
@@ -571,7 +572,7 @@ final class Stats {
       $row['size'] = (int)array_shift($parts);
       $row['used'] = (int)array_shift($parts);
       $row['available'] = (int)array_shift($parts);
-      $row['capacity'] = (int)array_shift($parts);
+      $row['capacity'] = 100 - ( (int)array_shift($parts) );
       $row['mounted_on'] = implode(' ', $parts);
       if($row['mounted_on']) {
         $rows[] = $row;
