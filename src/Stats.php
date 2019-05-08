@@ -430,7 +430,7 @@ final class Stats {
     $cpus = explode("\n", $output);
     foreach($cpus as $cpu) {
       $cpu = trim($cpu);
-      $cpu = str_replace('machdep.cpu.brand_string: ', $cpu);
+      $cpu = str_replace('machdep.cpu.brand_string: ', '', $cpu);
       if(!empty($cpu)) {
         $names[] = $cpu;
       }
