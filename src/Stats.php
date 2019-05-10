@@ -109,6 +109,7 @@ final class Stats {
     $proms[] = $this->runCpuLoads();
     $proms[] = $this->runMemStats();
     $proms[] = $this->getMemUsage();
+    $proms[] = $this->getNetStats();
     Promise\all($proms)
       ->then(function() use ($defer) {
         $defer->resolve( $this->output() );
