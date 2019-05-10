@@ -134,6 +134,7 @@ final class Stats {
     $out['disk_stats'] = $this->getDiskStats();
     $out['mem_stats'] = $this->getMemStats();
     $out['mem_usage'] = $this->getMemUsage();
+    $out['net_stats'] = $this->getNetStats();
     if($this->loop) {
       $defer = new Deferred;
       Promise\all($out)
@@ -698,7 +699,13 @@ final class Stats {
           $interfaces[ $iface ]['addresses']['ipv6'] = $tmp['Address'];
         }
       }
-      return array_values( $interfaces);
+      $res = [];
+      foreach($interfaces as $interface) {
+        if(isset($interface['addresses']['mac'])) {
+          $res[] = $interface;
+        }
+      }
+      return $res;
     }
     // Linux handling
     $interfaces = [];

@@ -120,6 +120,31 @@ Array
 )
 */
 
+$stats->getNetStats();
+/*
+Returns network stats for every network interface.
+Array
+(
+  [0] => Array
+    (
+      [interface] => Interface name
+      [mtu] => MTU, int
+      [addresses] => Array
+        (
+          [mac] => Mac address
+          [ipv4] => IPv4
+          [ipv6] => IPv6
+        )
+      [packets_in] => Packets, float
+      [packets_out] => Packets, float
+      [bytes_in] => Bytes, float
+      [bytes_out] => Bytes, float
+      [errors_in] => Errors, float
+      [errors_out] => Errors, float
+    )
+)
+*/
+
 $stats->output();
 /*
 Returns all the data in one single call.
@@ -130,6 +155,7 @@ Array
   [disk_stats] => getDiskStats()
   [mem_stats] => getMemStats()
   [mem_usage] => getMemUsage()
+  [net_stats] => getNetStats()
   [updated] => Time of stats
 )
 */
