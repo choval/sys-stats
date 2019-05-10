@@ -131,6 +131,23 @@ class AsyncStatsTest extends TestCase {
   }
 
 
+  public function testNetStats() {
+    $stats = static::$stats;
+    $loop = static::$loop;
+
+    $ifaces = sync( $loop, $stats->getNetStats() );
+    $cols = ['interface', 'bytes_in', 'bytes_out', 'errors_in', 'errors_out', 'packets_in', 'packets_out', 'addresses'];
+    foreach($ifaces as $iface) {
+      foreach($cols as $col) {
+        $this->assertArrayHasKey( $col, $iface);
+      }
+      $this->assertInternalType('array', $iface['addresses']);
+    }
+  }
+
+
+
+
 }
 
 

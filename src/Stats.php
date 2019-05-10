@@ -27,6 +27,8 @@ final class Stats {
   private $cpu_models;
   private $cpu_models_raw;
 
+  private $net_stats;
+  private $net_stats_raw;
 
 
   /**
@@ -183,9 +185,6 @@ final class Stats {
   public function getMemStats() {
     if($this->frequency && $this->mem_stats) {
       return new FulfilledPromise( $this->mem_stats );
-    }
-    if($this->loop) {
-      return $this->runMemStats();
     }
     return $this->runMemStats();
   }
@@ -373,9 +372,6 @@ final class Stats {
     if($this->frequency && $this->cpu_models) {
       return new FulfilledPromise( $this->cpu_models );
     }
-    if($this->loop) {
-      return $this->runCpuModels();
-    }
     return $this->runCpuModels();
   }
 
@@ -451,9 +447,6 @@ final class Stats {
   public function getDiskStats(string $target='') {
     if($this->frequency && $target == '' && $this->disk_stats) {
       return new FulfilledPromise( $this->disk_stats );
-    }
-    if($this->loop) {
-      return $this->runDiskStats($target);
     }
     return $this->runDiskStats($target);
   }
@@ -579,6 +572,185 @@ final class Stats {
       }
     }
     return $rows;
+  }
+
+
+
+  /**
+   *
+   * Run net stats
+   *
+   */
+  private function runNetStats() {
+    $cmd = "(netstat -ie || netstat -ibnl)";
+    if($this->loop) {
+      $defer = new Deferred;
+      execute($this->loop, $cmd)
+        ->then(function($raw) use ($defer) {
+          $this->net_stats_raw = $raw;
+          $this->net_stats = $this->parseNetStats($raw);
+          $defer->resolve($this->net_stats);
+        })
+        ->otherwise(function($e) use ($defer) {
+          $defer->reject($e);
+        });
+      return $defer->promise();
+    }
+    $output = [];
+    exec($cmd, $output);
+    $raw = implode("\n", $output);
+    $this->net_stats_raw = $raw;
+    $this->net_stats = $this->parseNetStats($raw);
+    return $this->net_stats;
+  }
+
+
+
+  /**
+   *
+   * Parses CLI table
+   *
+   */
+  public function parseTable(string $raw) {
+    $lines = explode("\n", $raw);
+    $spaces = [];
+    $lines_count = 0;
+    foreach($lines as $pos=>$line) {
+      if(empty($line)) {
+        $lines_count++;
+        continue;
+      }
+      $from = 0;
+      while( ($keypos = strpos($line, ' ', $from) ) !== false) {
+        $spaces[$pos][] = $keypos;
+        $from = $keypos+1;
+      }
+    }
+    $dividers = call_user_func_array('array_intersect', $spaces);
+    $from = 0;
+    $headers = [];
+    $header_line = array_shift($lines);
+    foreach($dividers as $pos) {
+      $len = $pos-$from;
+      $val = trim(substr($header_line, $from, $len));
+      if($val) {
+        $headers[$pos] = $val;
+      }
+      $from = $pos;
+    }
+    $res = [];
+    foreach($lines as $line) {
+      if(empty($line)) {
+        continue;
+      }
+      $from = 0;
+      $row = [];
+      foreach($dividers as $pos) {
+        $len = $pos-$from;
+        $val = trim(substr($line, $from, $len));
+        if(isset($headers[$pos])) {
+          $key = $headers[$pos];
+          $row[$key] = $val;
+        }
+        $from = $pos;
+      }
+      $res[] = $row;
+    }
+    return $res;
+  }
+
+
+  
+
+  /**
+   *
+   * Parses netstat results
+   *
+   */
+  private function parseNetStats(string $raw) {
+    // Mac handling
+    if(preg_match('/Name[\s]+Mtu[\s]+Network[\s]+Address[\s]+Ipkts[\s]+Ierrs[\s]+Ibytes[\s]+Opkts[\s]+Oerrs[\s]+Obytes[\s]+Coll/', $raw)) {
+      $lines = $this->parseTable($raw);
+      $interfaces = [];
+      foreach($lines as $tmp) {
+        $iface = $tmp['Name'];
+        if(!isset($interfaces[$iface])) {
+          $row = [];
+          $row['interface'] = $iface;
+          $row['mtu'] = (int) $tmp['Mtu'];
+          $row['addresses'] = [];
+          $row['packets_in'] = (float) $tmp['Ipkts'];
+          $row['packets_out'] = (float) $tmp['Opkts'];
+          $row['bytes_in'] = (float) $tmp['Ibytes'];
+          $row['bytes_out'] = (float) $tmp['Obytes'];
+          $row['errors_in'] = (float) $tmp['Ierrs'];
+          $row['errors_out'] = (float) $tmp['Oerrs'];
+          $interfaces[ $iface ] = $row;
+        }
+        // Mac
+        if(preg_match('/^[0-9a-f]{2}(:[0-9a-f]{2}){5}$/', $tmp['Address'])) {
+          $interfaces[ $iface ]['addresses']['mac'] = $tmp['Address'];
+        }
+        else if(preg_match('/^[0-9]{1,3}(\.[0-9]{1,3}){3}$/', $tmp['Address'])) {
+          $interfaces[ $iface ]['addresses']['ipv4'] = $tmp['Address'];
+        }
+        else if(strpos($tmp['Address'], '::') !== false || preg_match('/[0-9a-f]{4}/', $tmp['Address'])) {
+          $interfaces[ $iface ]['addresses']['ipv6'] = $tmp['Address'];
+        }
+      }
+      return array_values( $interfaces);
+    }
+    // Linux handling
+    $interfaces = [];
+    $parts = explode("\n\n", $raw);
+    foreach($parts as $tmp) {
+      if(preg_match('/(?P<iface>[^\s]+)[\s]+Link[\s].+[\s]HWaddr[\s](?P<mac>[0-9a-f]{2}(:[0-9a-f]{2}){5})/', $tmp, $match)) {
+        $row = [];
+        $row['interface'] = $match['iface'];
+        $row['addresses'] = [
+          'mac' => $match['mac'],
+        ];
+        if(preg_match('/inet6 addr:[\s]*(?P<ipv6>[0-9a-f\:\/]+) /', $tmp, $match)) {
+          $row['addresses']['ipv6'] = $match['ipv6'];
+        }
+        if(preg_match('/ MTU:[\s]*(?P<mtu>[0-9]+)/', $tmp, $match)) {
+          $row['mtu'] = (int)$match['mtu'];
+        }
+        if(preg_match('/inet addr:[\s]*(?P<ipv4>[0-9]{1,3}(\.[0-9]{1,3}){3}) /', $tmp, $match)) {
+          $row['addresses']['ipv4'] = $match['ipv4'];
+        }
+        if(preg_match('/RX packets:[\s]*(?P<packets_in>[0-9]+) errors:[\s]*(?P<errors_in>[0-9]+) /', $tmp, $match)) {
+          $row['packets_in'] = (float) $match['packets_in'];
+          $row['errors_in'] = (float) $match['errors_in'];
+        }
+        if(preg_match('/TX packets:[\s]*(?P<packets_out>[0-9]+) errors:[\s]*(?P<errors_out>[0-9]+) /', $tmp, $match)) {
+          $row['packets_out'] = (float) $match['packets_out'];
+          $row['errors_out'] = (float) $match['errors_out'];
+        }
+        if(preg_match('/RX bytes:[\s]*(?P<bytes_in>[0-9]+) /', $tmp, $match)) {
+          $row['bytes_in'] = (float) $match['bytes_in'];
+        }
+        if(preg_match('/TX bytes:[\s]*(?P<bytes_out>[0-9]+) /', $tmp, $match)) {
+          $row['bytes_out'] = (float) $match['bytes_out'];
+        }
+        $interfaces[] = $row;
+      }
+    }
+    return $interfaces;
+  }
+
+
+
+  /**
+   *
+   * Gets the net stats
+   *
+   */
+  public function getNetStats() {
+    if($this->frequency && $this->net_stats) {
+      return new FulfilledPromise( $this->net_stats );
+    }
+    return $this->runNetStats();
   }
 
 
