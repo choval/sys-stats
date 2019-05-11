@@ -584,7 +584,7 @@ final class Stats {
    *
    */
   private function runNetStats() {
-    $cmd = "(netstat -ie || netstat -ibnl)";
+    $cmd = "(netstat -ie 2>/dev/null || netstat -ibnl 2>/dev/null )";
     if($this->loop) {
       $defer = new Deferred;
       execute($this->loop, $cmd)
@@ -616,10 +616,11 @@ final class Stats {
   public function parseTable(string $raw) {
     $lines = explode("\n", $raw);
     $spaces = [];
-    $lines_count = 0;
     foreach($lines as $pos=>$line) {
       if(empty($line)) {
-        $lines_count++;
+        continue;
+      }
+      if($pos == 0) {
         continue;
       }
       $from = 0;
@@ -629,16 +630,27 @@ final class Stats {
       }
     }
     $dividers = call_user_func_array('array_intersect', $spaces);
+    $final_dividers = [];
+    $last = 0;
+    foreach($dividers as $pos) {
+      if($pos != ($last+1)) {
+        $final_dividers[] = $pos;
+      }
+      $last = $pos;
+    }
+    $dividers = $final_dividers;
+
     $from = 0;
     $headers = [];
     $header_line = array_shift($lines);
     foreach($dividers as $pos) {
       $len = $pos-$from;
       $val = trim(substr($header_line, $from, $len));
+      $next = $from+$len;
       if($val) {
         $headers[$pos] = $val;
+        $from = $pos;
       }
-      $from = $pos;
     }
     $res = [];
     foreach($lines as $line) {
