@@ -13,7 +13,7 @@
     "require": {
       "php": "^7.2",
       "react/child-process": "^0.6",
-      "choval/async": "^0.1.0",
+      "choval/async": "^0.2.0",
       "psr/log": "^1.1"
     },
     "require-dev": {
