@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "bb7690caf52d083a87b369cbecc1550b",
+    "content-hash": "28fc82618b542c5f9b8610754fabb6d4",
     "packages": [
         {
             "name": "amphp/amp",
@@ -84,16 +84,16 @@
         },
         {
             "name": "choval/async",
-            "version": "v0.2.0",
+            "version": "v0.3.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/choval/async.git",
-                "reference": "6ab6b0a18a94e8bbd701364c6eefa4a828fec77a"
+                "reference": "1e0d7af06f5cd8b827e826096bb7f970aedfc96e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/choval/async/zipball/6ab6b0a18a94e8bbd701364c6eefa4a828fec77a",
-                "reference": "6ab6b0a18a94e8bbd701364c6eefa4a828fec77a",
+                "url": "https://api.github.com/repos/choval/async/zipball/1e0d7af06f5cd8b827e826096bb7f970aedfc96e",
+                "reference": "1e0d7af06f5cd8b827e826096bb7f970aedfc96e",
                 "shasum": ""
             },
             "require": {
@@ -122,7 +122,7 @@
                 }
             ],
             "description": "A set of functions to help coding in async",
-            "time": "2019-05-13T20:26:47+00:00"
+            "time": "2019-05-16T00:00:02+00:00"
         },
         {
             "name": "clue/block-react",
@@ -1230,16 +1230,16 @@
         },
         {
             "name": "phpunit/phpunit",
-            "version": "7.5.10",
+            "version": "7.5.11",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianbergmann/phpunit.git",
-                "reference": "d7d9cee051d03ed98df6023aad93f7902731a780"
+                "reference": "64cb33f5b520da490a7b13149d39b43cf3c890c6"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/d7d9cee051d03ed98df6023aad93f7902731a780",
-                "reference": "d7d9cee051d03ed98df6023aad93f7902731a780",
+                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/64cb33f5b520da490a7b13149d39b43cf3c890c6",
+                "reference": "64cb33f5b520da490a7b13149d39b43cf3c890c6",
                 "shasum": ""
             },
             "require": {
@@ -1310,7 +1310,7 @@
                 "testing",
                 "xunit"
             ],
-            "time": "2019-05-09T05:06:47+00:00"
+            "time": "2019-05-14T04:53:02+00:00"
         },
         {
             "name": "sebastian/code-unit-reverse-lookup",
