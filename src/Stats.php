@@ -199,7 +199,7 @@ final class Stats {
    *
    */
   private function runMemStats() {
-    $cmd = 'test -e /proc/meminfo && cat /proc/meminfo || which vm_stat && vm_stat';
+    $cmd = '(test -e /proc/meminfo && cat /proc/meminfo) || (which vm_stat && vm_stat)';
     if($this->loop) {
       $defer = new Deferred;
       execute($this->loop, $cmd)
@@ -584,7 +584,7 @@ final class Stats {
    *
    */
   private function runNetStats() {
-    $cmd = "(netstat -ie 2>/dev/null || netstat -ibnl 2>/dev/null )";
+    $cmd = "which netstat && (netstat -ie 2>/dev/null || netstat -ibnl 2>/dev/null )";
     if($this->loop) {
       $defer = new Deferred;
       execute($this->loop, $cmd)
