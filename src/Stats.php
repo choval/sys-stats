@@ -584,7 +584,7 @@ final class Stats {
    *
    */
   private function runNetStats() {
-    $cmd = "which netstat && (netstat -ie 2>/dev/null || netstat -ibnl 2>/dev/null )";
+    $cmd = "(netstat -ie 2>/dev/null || netstat -ibnl 2>/dev/null )";
     if($this->loop) {
       $defer = new Deferred;
       execute($this->loop, $cmd)
