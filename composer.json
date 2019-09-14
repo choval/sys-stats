@@ -4,21 +4,20 @@
     "type": "library",
     "license": "MIT",
     "autoload": {
-      "files": [
-      ],
-      "psr-4": {
-        "Choval\\System\\": "src/"
-      }
+        "files": [
+        ],
+        "psr-4": {
+            "Choval\\System\\": "src/"
+        }
     },
     "require": {
-      "php": "^7.2",
-      "react/child-process": "^0.6",
-      "choval/async": "^0.3",
-      "psr/log": "^1.1"
+        "php": "^7.2",
+        "choval/async": "^0.4.0",
+        "psr/log": "^1.1"
     },
     "require-dev": {
-      "clue/block-react": "^1.",
-      "phpunit/phpunit": "^7"
+        "symplify/easy-coding-standard": "^6.0",
+        "phpunit/phpunit": "^8"
     }
 
 }
