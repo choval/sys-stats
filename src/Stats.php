@@ -7,9 +7,7 @@ use React\Promise;
 use React\Promise\Deferred;
 use React\Promise\FulfilledPromise;
 
-use function Choval\Async\async;
-use function Choval\Async\execute;
-use function Choval\Async\sync;
+use Choval\Async;
 
 final class Stats
 {
@@ -246,7 +244,7 @@ final class Stats
         $cmd = '(test -e /proc/meminfo && cat /proc/meminfo) || (which vm_stat && vm_stat)';
         $promise = false;
         if ($this->mode == 'react') {
-            $promise = execute($this->loop, $cmd);
+            $promise = Async\execute($this->loop, $cmd);
         }
         if ($promise) {
             $defer = new Deferred();
@@ -442,7 +440,7 @@ final class Stats
         $cmd = "test -e /proc/cpuinfo && grep 'model name' /proc/cpuinfo || (which nproc && nproc ) || (which sysctl && (sysctl hw.ncpu | awk '{print $2}') && sysctl machdep.cpu.brand_string) | tail -n 2 || echo 'Unknown'";
         $promise = false;
         if ($this->mode == 'react') {
-            $promise = execute($this->loop, $cmd);
+            $promise = Async\execute($this->loop, $cmd);
         }
         if ($promise) {
             $defer = new Deferred();
@@ -575,7 +573,7 @@ final class Stats
         $cmd = "df -BM --output=source,size,used,avail,pcent,target {$target} 2>/dev/null || df -bm {$target} 2>/dev/null";
         $promise = false;
         if ($this->mode == 'react') {
-            $promise = execute($this->loop, $cmd);
+            $promise = Async\execute($this->loop, $cmd);
         }
         if ($promise) {
             $defer = new Deferred();
@@ -656,7 +654,7 @@ final class Stats
         $cmd = "(netstat -ie 2>/dev/null || netstat -ibnl 2>/dev/null )";
         $promise = false;
         if ($this->mode == 'react') {
-            $promise = execute($this->loop, $cmd);
+            $promise = Async\execute($this->loop, $cmd);
         }
         if ($promise) {
             $defer = new Deferred();
