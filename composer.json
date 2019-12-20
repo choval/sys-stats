@@ -12,8 +12,7 @@
     },
     "require": {
         "php": "^7.2",
-        "choval/async": "^0.4.0",
-        "psr/log": "^1.1"
+        "choval/async": "^0.4.0"
     },
     "require-dev": {
         "symplify/easy-coding-standard": "^6.0",
