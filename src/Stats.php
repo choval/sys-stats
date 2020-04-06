@@ -468,8 +468,15 @@ final class Stats
      */
     public function getDiskStats(string $target = '')
     {
-        if ($this->frequency && $this->disk_stats && $target === '' && $this->mode === 'react') {
-            return new FulfilledPromise($this->disk_stats);
+        if ($this->frequency && $this->disk_stats && $this->mode === 'react') {
+            if ($target === '') {
+                return new FulfilledPromise($this->disk_stats);
+            }
+            foreach ($this->disk_stats as $disk) {
+                if ($disk['filesystem'] === $target || $disk['mounted_on'] === $target) {
+                    return new FulfilledPromise($disk);
+                }
+            }
         }
         return $this->runDiskStats($target);
     }
