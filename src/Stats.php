@@ -167,7 +167,7 @@ final class Stats
                 $output = yield Promise\all($out);
                 $output['updated'] = $this->updated ?? time();
                 return $output;
-            });
+            }, $this->loop);
         }
         return $out;
     }
@@ -239,7 +239,7 @@ final class Stats
                 $this->mem_stats_raw = $raw;
                 $this->mem_stats = $this->parseMemStats($raw);
                 return $this->mem_stats;
-            });
+            }, $this->loop);
         }
         $output = [];
         exec($cmd, $output);
@@ -343,7 +343,7 @@ final class Stats
                     return $loads[$min];
                 }
                 return $loads;
-            });
+            }, $this->loop);
         }
         $loads = $this->runCpuLoads();
         if ($min) {
@@ -372,7 +372,7 @@ final class Stats
                    '15_min' => round($load[2] / $cpu_count * 100),
                 ];
                 return $this->cpu_loads;
-            });
+            }, $this->loop);
         }
         $models = $this->getCpuModels();
         $cpu_count = count($models);
@@ -416,7 +416,7 @@ final class Stats
                 $this->cpu_models_raw = $output;
                 $this->cpu_models = $this->parseCpuModels($output);
                 return $this->cpu_models;
-            });
+            }, $this->loop);
         }
         exec($cmd, $output);
         $output = implode("\n", $output);
@@ -504,7 +504,7 @@ final class Stats
                     } while ($dir != dirname($dir) && $dir = dirname($dir));
                 }
                 return current($rows);
-            });
+            }, $this->loop);
         }
         $rows = $this->getDiskStats($target);
         return current($rows);
@@ -535,7 +535,7 @@ final class Stats
                 $this->disk_stats_raw = $raw;
                 $this->disk_stats = $this->parseDiskStats($raw);
                 return $this->disk_stats;
-            });
+            }, $this->loop);
         }
         $output = [];
         exec($cmd, $output);
@@ -604,7 +604,7 @@ final class Stats
                 $this->net_stats_raw = $raw;
                 $this->net_stats = $this->parseNetStats($raw);
                 return $this->net_stats;
-            });
+            }, $this->loop);
         }
         $output = [];
         exec($cmd, $output);
