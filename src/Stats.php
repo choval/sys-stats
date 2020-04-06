@@ -2,12 +2,12 @@
 
 namespace Choval\System;
 
+use Choval\Async;
 use React\EventLoop\LoopInterface;
 use React\Promise;
 use React\Promise\Deferred;
-use React\Promise\FulfilledPromise;
 
-use Choval\Async;
+use React\Promise\FulfilledPromise;
 
 final class Stats
 {
@@ -687,58 +687,24 @@ final class Stats
     public function parseTable(string $raw)
     {
         $lines = explode("\n", $raw);
-        $spaces = [];
-        foreach ($lines as $pos => $line) {
-            if (empty($line)) {
-                continue;
-            }
-            if ($pos == 0) {
-                continue;
-            }
-            $from = 0;
-            while (($keypos = strpos($line, ' ', $from)) !== false) {
-                $spaces[$pos][] = $keypos;
-                $from = $keypos + 1;
-            }
-        }
-        $dividers = call_user_func_array('array_intersect', $spaces);
-        $final_dividers = [];
-        $last = 0;
-        foreach ($dividers as $pos) {
-            if ($pos != ($last + 1)) {
-                $final_dividers[] = $pos;
-            }
-            $last = $pos;
-        }
-        $dividers = $final_dividers;
-
-        $from = 0;
         $headers = [];
         $header_line = array_shift($lines);
-        foreach ($dividers as $pos) {
-            $len = $pos - $from;
-            $val = trim(substr($header_line, $from, $len));
-            $next = $from + $len;
-            if ($val) {
-                $headers[$pos] = $val;
-                $from = $pos;
-            }
+        $header_parts = preg_split('/[\s]+/', $header_line);
+        foreach ($header_parts as $part) {
+            $headers[] = $part;
         }
+        $headers_count = count($headers);
         $res = [];
         foreach ($lines as $line) {
-            if (empty($line)) {
+            $parts = preg_split('/[\s]+/', $line);
+            $parts_count = count($parts);
+            if ($parts_count !== $headers_count) {
                 continue;
             }
-            $from = 0;
             $row = [];
-            foreach ($dividers as $pos) {
-                $len = $pos - $from;
-                $val = trim(substr($line, $from, $len));
-                if (isset($headers[$pos])) {
-                    $key = $headers[$pos];
-                    $row[$key] = $val;
-                }
-                $from = $pos;
+            foreach ($parts as $pos => $part) {
+                $k = $headers[$pos];
+                $row[$k] = $part;
             }
             $res[] = $row;
         }
@@ -811,8 +777,8 @@ final class Stats
                 $row = [];
                 $row['interface'] = $match['iface'];
                 $row['addresses'] = [
-          'mac' => $match['mac'],
-        ];
+                    'mac' => $match['mac'],
+                ];
                 if (preg_match('/inet6 addr:[\s]*(?P<ipv6>[0-9a-f\:\/]+) /', $tmp, $match)) {
                     $row['addresses']['ipv6'] = $match['ipv6'];
                 }

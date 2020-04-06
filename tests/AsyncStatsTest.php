@@ -107,6 +107,7 @@ class AsyncStatsTest extends TestCase
             }
             $this->assertIsArray($iface['addresses']);
         }
+        print_r($ifaces);
     }
 
 
