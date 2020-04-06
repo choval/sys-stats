@@ -188,7 +188,7 @@ $stats->refresh();
 /*
 Forces a refresh of all data ignoring the frequency.
 Will not reset the frequency timer.
-Returns a promise that resolves with $stats->output()
+Returns a promise.
 */
 
 $stats->getUpdated();

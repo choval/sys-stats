@@ -5,6 +5,7 @@ use PHPUnit\Framework\TestCase;
 use React\EventLoop\Factory;
 
 use React\Promise\Deferred;
+use React\Promise\PromiseInterface;
 use function Choval\Async\sleep;
 use function Choval\Async\sync;
 
@@ -66,7 +67,10 @@ class AsyncStatsTest extends TestCase
         $stats = static::$stats;
         $loop = static::$loop;
 
-        $loads = sync($loop, $stats->getCpuLoads());
+        $prom = $stats->getCpuLoads();
+        $this->assertInstanceOf(PromiseInterface::class, $prom);
+        $loads = sync($loop, $prom);
+        $this->assertIsArray($loads);
         $this->assertArrayHasKey('1_min', $loads);
         $this->assertArrayHasKey('5_min', $loads);
         $this->assertArrayHasKey('15_min', $loads);
@@ -74,7 +78,6 @@ class AsyncStatsTest extends TestCase
             $this->assertGreaterThanOrEqual(0, $load);
             $this->assertLessThanOrEqual(120, $load);
         }
-        print_r($loads);
     }
 
 
@@ -90,7 +93,6 @@ class AsyncStatsTest extends TestCase
         }
         $this->assertGreaterThanOrEqual(0, $stats['capacity']);
         $this->assertLessThanOrEqual(120, $stats['capacity']);
-        print_r($stats);
     }
 
 
@@ -107,7 +109,6 @@ class AsyncStatsTest extends TestCase
             }
             $this->assertIsArray($iface['addresses']);
         }
-        print_r($ifaces);
     }
 
 

@@ -5,8 +5,6 @@ namespace Choval\System;
 use Choval\Async;
 use React\EventLoop\LoopInterface;
 use React\Promise;
-use React\Promise\Deferred;
-
 use React\Promise\FulfilledPromise;
 
 final class Stats
@@ -41,6 +39,7 @@ final class Stats
      */
     public function __construct()
     {
+        $this->runCpuModels();
         $this->mode = 'block';
         $vars = func_get_args();
         foreach ($vars as $var) {
@@ -93,12 +92,7 @@ final class Stats
     {
         if ($this->frequency) {
             $this->stop();
-            if ($this->mode == 'swoole') {
-                $this->timer = swoole_timer_tick($this->frequency * 1000, function () {
-                    $this->refresh();
-                });
-                $this->refresh();
-            } elseif ($this->mode == 'react') {
+            if ($this->mode === 'react') {
                 $this->timer = $this->loop->addPeriodicTimer($this->frequency, function () {
                     $this->refresh();
                 });
@@ -118,9 +112,7 @@ final class Stats
     public function stop()
     {
         if ($this->timer) {
-            if ($this->mode == 'swoole') {
-                swoole_timer_clear($this->timer);
-            } elseif ($this->mode == 'react') {
+            if ($this->mode === 'react') {
                 $this->loop->cancelTimer($this->timer);
             }
             $this->timer = false;
@@ -137,25 +129,20 @@ final class Stats
      */
     public function refresh()
     {
-        if (!in_array($this->mode, ['react', 'swoole'])) {
-            throw new \Exception('This can only be used with a LoopInterface or with Swoole installed');
+        if ($this->mode !== 'react') {
+            throw new \Exception('This can only be used with an EventLoop');
         }
-        $this->updated = time();
-        $defer = new Deferred();
-        $proms = [];
-        $proms[] = $this->runDiskStats();
-        $proms[] = $this->runCpuLoads();
-        $proms[] = $this->runMemStats();
-        $proms[] = $this->getMemUsage();
-        $proms[] = $this->getNetStats();
-        Promise\all($proms)
-            ->then(function () use ($defer) {
-                $defer->resolve($this->output());
-            })
-            ->otherwise(function ($e) use ($defer) {
-                $defer->reject($e);
-            });
-        return $defer->promise();
+        return Async\resolve(function () {
+            $this->updated = time();
+            $proms = [];
+            $proms[] = $this->runDiskStats();
+            $proms[] = $this->runCpuLoads();
+            $proms[] = $this->runMemStats();
+            $proms[] = $this->runMemUsage();
+            $proms[] = $this->runNetStats();
+            yield Promise\all($proms);
+            return $this;
+        }, $this->loop);
     }
 
 
@@ -175,21 +162,12 @@ final class Stats
         $out['mem_stats'] = $this->getMemStats();
         $out['mem_usage'] = $this->getMemUsage();
         $out['net_stats'] = $this->getNetStats();
-        if ($this->mode == 'swoole' || $this->mode == 'react') {
-            $defer = new Deferred();
-            Promise\all($out)
-                ->then(function ($output) use ($defer) {
-                    if ($this->frequency) {
-                        $output['updated'] = $this->updated;
-                    } else {
-                        $output['updated'] = $this->updated ?? time();
-                    }
-                    $defer->resolve($output);
-                })
-                ->otherwise(function ($e) use ($defer) {
-                    $defer->reject($e);
-                });
-            return $defer->promise();
+        if ($this->mode === 'react') {
+            return Async\resolve(function () use ($out) {
+                $output = yield Promise\all($out);
+                $output['updated'] = $this->updated ?? time();
+                return $output;
+            });
         }
         return $out;
     }
@@ -206,17 +184,30 @@ final class Stats
         if ($this->frequency && $this->mem_usage) {
             return new FulfilledPromise($this->mem_usage);
         }
+        return $this->runMemUsage();
+    }
+
+
+
+    /**
+     *
+     * Runs memory usage
+     *
+     */
+    public function runMemUsage()
+    {
         $res = [];
         $res['peak'] = memory_get_peak_usage(true);
         $res['peak_active'] = memory_get_peak_usage();
         $res['current'] = memory_get_usage(true);
         $res['current_active'] = memory_get_usage();
         $this->mem_usage = $res;
-        if ($this->mode == 'swoole' || $this->mode == 'react') {
+        if ($this->mode === 'react') {
             return new FulfilledPromise($res);
         }
         return $res;
     }
+
 
 
     /**
@@ -242,22 +233,13 @@ final class Stats
     private function runMemStats()
     {
         $cmd = '(test -e /proc/meminfo && cat /proc/meminfo) || (which vm_stat && vm_stat)';
-        $promise = false;
         if ($this->mode == 'react') {
-            $promise = Async\execute($this->loop, $cmd);
-        }
-        if ($promise) {
-            $defer = new Deferred();
-            $promise
-                ->then(function ($raw) use ($defer) {
-                    $this->mem_stats_raw = $raw;
-                    $this->mem_stats = $this->parseMemStats($raw);
-                    $defer->resolve($this->mem_stats);
-                })
-                ->otherwise(function ($e) use ($defer) {
-                    $defer->reject($e);
-                });
-            return $defer->promise();
+            return Async\resolve(function () use ($cmd) {
+                $raw = yield Async\execute($this->loop, $cmd);
+                $this->mem_stats_raw = $raw;
+                $this->mem_stats = $this->parseMemStats($raw);
+                return $this->mem_stats;
+            });
         }
         $output = [];
         exec($cmd, $output);
@@ -299,11 +281,11 @@ final class Stats
             $tmp[$k] = ((float)$v) / $base;
         }
         $cols = [
-      'total' => ['MemTotal', 'Pages free', 'Pages active', 'Pages inactive', 'Pages speculative', 'Pages throttled', 'Pages wired down', 'Pages occupied by compressor'],
-      'free' => ['MemFree', 'Pages free'],
-      'used' => ['MemTotal', 'Pages active', 'Pages speculative', 'Pages throttled', 'Pages wired down', 'Pages occupied by compressor'],
-      'available' => ['MemAvailable', 'Pages free', 'Pages inactive'],
-    ];
+            'total' => ['MemTotal', 'Pages free', 'Pages active', 'Pages inactive', 'Pages speculative', 'Pages throttled', 'Pages wired down', 'Pages occupied by compressor'],
+            'free' => ['MemFree', 'Pages free'],
+            'used' => ['MemTotal', 'Pages active', 'Pages speculative', 'Pages throttled', 'Pages wired down', 'Pages occupied by compressor'],
+            'available' => ['MemAvailable', 'Pages free', 'Pages inactive'],
+        ];
         $final = [];
         foreach ($cols as $k => $source) {
             $final[ $k ] = 0;
@@ -348,25 +330,20 @@ final class Stats
                 throw new \Exception('Non valid load');
             }
         }
-        if ($this->mode == 'swoole' || $this->mode == 'react') {
-            if ($this->frequency && $this->cpu_loads) {
-                if ($min) {
-                    return new FulfilledPromise($this->cpu_loads[$min]);
-                }
-                return new FulfilledPromise($this->cpu_loads);
-            }
-            $defer = new Deferred();
-            $this->runCpuLoads()
-                ->then(function ($loads) use ($defer, $min) {
+        if ($this->mode === 'react') {
+            return Async\resolve(function () use ($min) {
+                if ($this->frequency && $this->cpu_loads) {
                     if ($min) {
-                        return $defer->resolve($loads[$min]);
+                        return $this->cpu_loads[$min];
                     }
-                    return $defer->resolve($loads);
-                })
-                ->otherwise(function ($e) use ($defer) {
-                    $defer->reject($e);
-                });
-            return $defer->promise();
+                    return $this->cpu_loads;
+                }
+                $loads = yield $this->runCpuLoads();
+                if ($min) {
+                    return $loads[$min];
+                }
+                return $loads;
+            });
         }
         $loads = $this->runCpuLoads();
         if ($min) {
@@ -385,30 +362,24 @@ final class Stats
     private function runCpuLoads()
     {
         $load = sys_getloadavg();
-        $promise = false;
-        if ($this->mode == 'swoole' || $this->mode == 'react') {
-            $defer = new Deferred();
-            $this->runCpuModels()
-                ->then(function ($models) use ($defer, $load) {
-                    $cpu_count = count($models);
-                    $this->cpu_loads = [
-                     '1_min' => round($load[0] / $cpu_count * 100),
-                     '5_min' => round($load[1] / $cpu_count * 100),
-                    '15_min' => round($load[2] / $cpu_count * 100),
-                    ];
-                    return $defer->resolve($this->cpu_loads);
-                })
-                ->otherwise(function ($e) use ($defer) {
-                    $defer->reject($e);
-                });
-            return $defer->promise();
+        if ($this->mode === 'react') {
+            return Async\resolve(function () use ($load) {
+                $models = yield $this->getCpuModels();
+                $cpu_count = count($models);
+                $this->cpu_loads = [
+                    '1_min' => round($load[0] / $cpu_count * 100),
+                    '5_min' => round($load[1] / $cpu_count * 100),
+                   '15_min' => round($load[2] / $cpu_count * 100),
+                ];
+                return $this->cpu_loads;
+            });
         }
         $models = $this->getCpuModels();
         $cpu_count = count($models);
         $this->cpu_loads = [
-           '1_min' => round($load[0] / $cpu_count * 100),
-           '5_min' => round($load[1] / $cpu_count * 100),
-          '15_min' => round($load[2] / $cpu_count * 100),
+            '1_min' => round($load[0] / $cpu_count * 100),
+            '5_min' => round($load[1] / $cpu_count * 100),
+           '15_min' => round($load[2] / $cpu_count * 100),
         ];
         return $this->cpu_loads;
     }
@@ -422,8 +393,8 @@ final class Stats
      */
     public function getCpuModels()
     {
-        if ($this->frequency && $this->cpu_models) {
-            return new FulfilledPromise($this->cpu_models);
+        if ($this->cpu_models) {
+            return $this->cpu_models;
         }
         return $this->runCpuModels();
     }
@@ -439,21 +410,13 @@ final class Stats
     {
         $cmd = "test -e /proc/cpuinfo && grep 'model name' /proc/cpuinfo || (which nproc && nproc ) || (which sysctl && (sysctl hw.ncpu | awk '{print $2}') && sysctl machdep.cpu.brand_string) | tail -n 2 || echo 'Unknown'";
         $promise = false;
-        if ($this->mode == 'react') {
-            $promise = Async\execute($this->loop, $cmd);
-        }
-        if ($promise) {
-            $defer = new Deferred();
-            $promise
-                ->then(function ($output) use ($defer) {
-                    $this->cpu_models_raw = $output;
-                    $this->cpu_models = $this->parseCpuModels($output);
-                    $defer->resolve($this->cpu_models);
-                })
-                ->otherwise(function ($e) use ($defer) {
-                    $defer->reject($e);
-                });
-            return $defer->promise();
+        if ($this->mode === 'react') {
+            return Async\resolve(function () use ($cmd) {
+                $output = yield Async\execute($this->loop, $cmd);
+                $this->cpu_models_raw = $output;
+                $this->cpu_models = $this->parseCpuModels($output);
+                return $this->cpu_models;
+            });
         }
         exec($cmd, $output);
         $output = implode("\n", $output);
@@ -505,9 +468,7 @@ final class Stats
      */
     public function getDiskStats(string $target = '')
     {
-        if ($this->disk_stats && $target == '' && (
-            $this->mode == 'react' || $this->mode == 'swoole'
-        )) {
+        if ($this->frequency && $this->disk_stats && $target === '' && $this->mode === 'react') {
             return new FulfilledPromise($this->disk_stats);
         }
         return $this->runDiskStats($target);
@@ -522,34 +483,28 @@ final class Stats
      */
     public function getSingleDiskStats(string $target)
     {
-        if ($this->mode == 'swoole' || $this->mode == 'react') {
-            $defer = new Deferred();
-            if ($this->frequency) {
-                $promise = $this->getDiskStats();
-            } else {
-                $promise = $this->getDiskStats($target);
-            }
-            $promise
-                ->then(function ($rows) use ($defer, $target) {
-                    if ($this->frequency) {
-                        $mounts = [];
-                        foreach ($rows as $pos => $row) {
-                            $mounts[$pos] = $row['mounted_on'];
-                        }
-                        $dir = $target;
-                        do {
-                            $key = array_search($dir, $mounts);
-                            if ($key) {
-                                return $defer->resolve($rows[$key]);
-                            }
-                        } while ($dir != dirname($dir) && $dir = dirname($dir));
+        if ($this->mode === 'react') {
+            return Async\resolve(function () use ($target) {
+                if ($this->frequency) {
+                    $rows = yield $this->getDiskStats();
+                } else {
+                    $rows = yield $this->getDiskStats($target);
+                }
+                if ($this->frequency) {
+                    $mounts = [];
+                    foreach ($rows as $pos => $row) {
+                        $mounts[$pos] = $row['mounted_on'];
                     }
-                    $defer->resolve(current($rows));
-                })
-                ->otherwise(function ($e) use ($defer) {
-                    $defer->reject($e);
-                });
-            return $defer->promise();
+                    $dir = $target;
+                    do {
+                        $key = array_search($dir, $mounts);
+                        if ($key) {
+                            return $rows[$key];
+                        }
+                    } while ($dir != dirname($dir) && $dir = dirname($dir));
+                }
+                return current($rows);
+            });
         }
         $rows = $this->getDiskStats($target);
         return current($rows);
@@ -571,25 +526,16 @@ final class Stats
             $target = escapeshellarg($target);
         }
         $cmd = "df -BM --output=source,size,used,avail,pcent,target {$target} 2>/dev/null || df -bm {$target} 2>/dev/null";
-        $promise = false;
         if ($this->mode == 'react') {
-            $promise = Async\execute($this->loop, $cmd);
-        }
-        if ($promise) {
-            $defer = new Deferred();
-            $promise
-                ->then(function ($raw) use ($defer, $target) {
-                    if ($target) {
-                        return $defer->resolve($this->parseDiskStats($raw));
-                    }
-                    $this->disk_stats_raw = $raw;
-                    $this->disk_stats = $this->parseDiskStats($raw);
-                    $defer->resolve($this->disk_stats);
-                })
-                ->otherwise(function ($e) use ($defer) {
-                    $defer->reject($e);
-                });
-            return $defer->promise();
+            return Async\resolve(function () use ($cmd, $target) {
+                $raw = yield Async\execute($this->loop, $cmd);
+                if ($target) {
+                    return $this->parseDiskStats($raw);
+                }
+                $this->disk_stats_raw = $raw;
+                $this->disk_stats = $this->parseDiskStats($raw);
+                return $this->disk_stats;
+            });
         }
         $output = [];
         exec($cmd, $output);
@@ -652,22 +598,13 @@ final class Stats
     private function runNetStats()
     {
         $cmd = "(netstat -ie 2>/dev/null || netstat -ibnl 2>/dev/null )";
-        $promise = false;
         if ($this->mode == 'react') {
-            $promise = Async\execute($this->loop, $cmd);
-        }
-        if ($promise) {
-            $defer = new Deferred();
-            $promise
-                ->then(function ($raw) use ($defer) {
-                    $this->net_stats_raw = $raw;
-                    $this->net_stats = $this->parseNetStats($raw);
-                    $defer->resolve($this->net_stats);
-                })
-                ->otherwise(function ($e) use ($defer) {
-                    $defer->reject($e);
-                });
-            return $defer->promise();
+            return Async\resolve(function () use ($cmd) {
+                $raw = yield Async\execute($this->loop, $cmd);
+                $this->net_stats_raw = $raw;
+                $this->net_stats = $this->parseNetStats($raw);
+                return $this->net_stats;
+            });
         }
         $output = [];
         exec($cmd, $output);

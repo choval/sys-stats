@@ -8,16 +8,16 @@
     "packages": [
         {
             "name": "choval/async",
-            "version": "v0.5.8",
+            "version": "v0.5.9",
             "source": {
                 "type": "git",
                 "url": "https://github.com/choval/async.git",
-                "reference": "1e6aa0d71cc359e998b3aaa9a330c90a591cc340"
+                "reference": "072471d79b1fb064248bfb8ec64494d9bd3ff6f9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/choval/async/zipball/1e6aa0d71cc359e998b3aaa9a330c90a591cc340",
-                "reference": "1e6aa0d71cc359e998b3aaa9a330c90a591cc340",
+                "url": "https://api.github.com/repos/choval/async/zipball/072471d79b1fb064248bfb8ec64494d9bd3ff6f9",
+                "reference": "072471d79b1fb064248bfb8ec64494d9bd3ff6f9",
                 "shasum": ""
             },
             "require": {
@@ -51,7 +51,7 @@
                 }
             ],
             "description": "A set of functions to help coding in async",
-            "time": "2020-04-02T19:20:44+00:00"
+            "time": "2020-04-06T19:28:54+00:00"
         },
         {
             "name": "evenement/evenement",
@@ -4413,12 +4413,12 @@
             "version": "v6.1.0",
             "source": {
                 "type": "git",
-                "url": "https://github.com/Symplify/CodingStandard.git",
+                "url": "https://github.com/symplify/coding-standard.git",
                 "reference": "d692701e2c74edd8c0cc7c35f47b8421b8b4885c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Symplify/CodingStandard/zipball/d692701e2c74edd8c0cc7c35f47b8421b8b4885c",
+                "url": "https://api.github.com/repos/symplify/coding-standard/zipball/d692701e2c74edd8c0cc7c35f47b8421b8b4885c",
                 "reference": "d692701e2c74edd8c0cc7c35f47b8421b8b4885c",
                 "shasum": ""
             },
@@ -4461,12 +4461,12 @@
             "version": "v6.1.0",
             "source": {
                 "type": "git",
-                "url": "https://github.com/Symplify/EasyCodingStandard.git",
+                "url": "https://github.com/symplify/easy-coding-standard.git",
                 "reference": "94b8cf03af132d007d8a33c8dad5655cff6a74e8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Symplify/EasyCodingStandard/zipball/94b8cf03af132d007d8a33c8dad5655cff6a74e8",
+                "url": "https://api.github.com/repos/symplify/easy-coding-standard/zipball/94b8cf03af132d007d8a33c8dad5655cff6a74e8",
                 "reference": "94b8cf03af132d007d8a33c8dad5655cff6a74e8",
                 "shasum": ""
             },
@@ -4525,12 +4525,12 @@
             "version": "v6.1.0",
             "source": {
                 "type": "git",
-                "url": "https://github.com/Symplify/PackageBuilder.git",
+                "url": "https://github.com/symplify/package-builder.git",
                 "reference": "fbdfe363a27070cfdfbc47d5f59e711ed08bb060"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Symplify/PackageBuilder/zipball/fbdfe363a27070cfdfbc47d5f59e711ed08bb060",
+                "url": "https://api.github.com/repos/symplify/package-builder/zipball/fbdfe363a27070cfdfbc47d5f59e711ed08bb060",
                 "reference": "fbdfe363a27070cfdfbc47d5f59e711ed08bb060",
                 "shasum": ""
             },

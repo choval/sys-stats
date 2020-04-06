@@ -78,7 +78,6 @@ class StatsTest extends TestCase
             $this->assertGreaterThanOrEqual(0, $load);
             $this->assertLessThanOrEqual(100, $load);
         }
-        print_r($loads);
     }
 
 
@@ -93,7 +92,6 @@ class StatsTest extends TestCase
         }
         $this->assertGreaterThanOrEqual(0, $stats['capacity']);
         $this->assertLessThanOrEqual(100, $stats['capacity']);
-        print_r($stats);
     }
 
 
@@ -106,7 +104,6 @@ class StatsTest extends TestCase
         foreach ($cols as $col) {
             $this->assertArrayHasKey($col, $usage);
         }
-        print_r($usage);
     }
 
 
