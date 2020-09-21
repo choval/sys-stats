@@ -32,6 +32,7 @@ class AsyncStatsTest extends TestCase
         $this->assertEquals('react', $mode);
 
         $disk = sync($loop, $stats->getDiskStats());
+        var_dump($disk);
         $this->assertNotEmpty($disk);
         $cols = ['filesystem', 'size', 'used', 'available', 'capacity', 'mounted_on'];
         foreach ($disk as $row) {
