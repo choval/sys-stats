@@ -1,2 +1,0 @@
-#!/bin/bash
-find src -type f -name "*.php" -exec php -l {} \; | grep -v "No syntax errors"
