@@ -11,7 +11,6 @@
         }
     },
     "require": {
-        "php": "^7.2",
         "choval/async": "^0.5"
     },
     "require-dev": {
